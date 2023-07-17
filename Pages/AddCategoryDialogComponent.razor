@@ -1,0 +1,79 @@
+﻿@inject IDispatcher Dispatcher
+@using BlazorWalletTrackerFE.Store.CategoryStore;
+@inject IDialogService DialogService
+
+<MudDialog @ref="dialogRef">
+    <DialogContent>
+        <MudCard Width="300px">
+            @*<MudTextField @bind-Value="categoryName" Label="Category Name" Required="true" Validation="ValidateCategoryName" Immediate="true" />
+            @if (categoryNameIsValid && CategoryList.Contains(categoryName))
+            {
+            <div class="validation-error">Category already exists.</div>
+            }*@
+
+            <MudTextField @bind-Value="categoryName" Label="Category Name" Required="true" Immediate="true" MaxLength="15" Validation="@(new Func<string, IEnumerable<string>>(IsAvailable))" Variant="Variant.Text"  />
+        </MudCard>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="SaveCategory" Disabled="string.IsNullOrWhiteSpace(categoryName) || CategoryList.Contains(categoryName)">Save</MudButton>
+        <MudButton Color="Color.Secondary" OnClick="CancelCategory">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [Parameter] public int UserId { get; set; }
+    [Parameter] public List<string> CategoryList { get; set; }
+    MudDialog dialogRef;
+    string categoryName { get; set; }
+
+    private IEnumerable<string> IsAvailable(string ch)
+    {
+        if (!string.IsNullOrEmpty(ch) && 15 < ch?.Length)
+            yield return "Max 15 characters";
+        if (CategoryList.Contains(ch))
+            yield return "Category already exists";
+        if (string.IsNullOrEmpty(ch))
+            yield return "Category name is required";
+    }
+
+    async void SaveCategory()
+    {
+        if (!string.IsNullOrEmpty(categoryName) && !CategoryList.Contains(categoryName))
+        {
+            var parameters = new DialogParameters();
+            parameters.Add("ContentText", "After adding a new category, please add a transaction with it to retain the category in case of page refresh or connection reset.");
+            parameters.Add("ButtonText", "Ok");
+            parameters.Add("Color", Color.Error);
+            var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+            var dialog = DialogService.Show<ConfirmDialog>("Acknowledgment", parameters, options);
+            var result = await dialog.Result;
+            // Dispatch an action to update the category in the state
+            if (!result.Canceled)
+            {
+                Dispatcher.Dispatch(new AddCategoryAction
+                    {
+                        Category = categoryName,
+                    });
+
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+        }
+    }
+
+    void CancelCategory()
+    {
+        MudDialog.Cancel();
+    }
+
+
+}
+
+@*@code {
+
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [Parameter] public int UserId { get; set; }
+    [Parameter] public List<string> CategoryList { get; set; }
+
+}
+*@

@@ -1,0 +1,40 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using System.Globalization
+@using BlazorWalletTrackerFE.Shared.Models;
+
+<div class="container" style="margin: auto 10px auto auto;">
+    Statistics: Spendings
+    <RadzenChart>
+        <RadzenLineSeries Smooth="true" Data="@spendingsStatistics" CategoryProperty="Month" Title="Spending" ValueProperty="TotalSpendingsInTheMonth" RenderingOrder="1">
+            <RadzenSeriesTrendLine Visible="@trend" Stroke="var(--rz-danger-dark)" LineType="LineType.Dashed" />
+            <RadzenSeriesMedianLine Visible="@median" Stroke="var(--rz-success-dark)" LineType="LineType.Dotted" />
+            <RadzenSeriesMeanLine Visible="@mean" Stroke="var(--rz-info-dark)" LineType="LineType.Dotted" />
+            <RadzenSeriesModeLine Visible="@mode" Stroke="var(--rz-warning-darker)" LineType="LineType.Dotted" />
+        </RadzenLineSeries>
+        <RadzenCategoryAxis Padding="20" />
+        <RadzenValueAxis>
+            <RadzenGridLines Visible="true" />
+            <RadzenAxisTitle Text="Total spendings" />
+        </RadzenValueAxis>
+        <RadzenLegend Position="LegendPosition.Bottom" />
+    </RadzenChart>
+</div>
+
+@code {
+    bool trend = true;
+    bool median = true;
+    bool mean = true;
+    bool mode = true;
+
+    [Parameter]
+    public SpendingsStatistics[] spendingsStatistics { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        Console.WriteLine(" I started Spendings Trends Component");
+        //base.OnInitialized();
+        Console.WriteLine(" I finished Spendings Trends Component");
+    }
+}

@@ -1,0 +1,264 @@
+﻿@*@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+@inject AuthenticationStateProvider authenticationStateProvider
+@using System.Security.Claims;
+
+<MudThemeProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+
+<MudLayout>
+    <MudAppBar Elevation="0" Color="Color.Primary">
+        <MudIconButton Icon="fa-bars" Edge="Edge.Start" />
+        <MudLink ActiveClass="active-link" Underline="Underline.None" Color="Color.Inherit" Href="/"><MudIconButton Icon="@Icons.Material.Outlined.CurrencyRupee" Color="Color.Inherit" Href="/" /></MudLink>
+        <MudText Typo="Typo.h4">Wallet Tracker</MudText>
+        <AuthorizeView>
+            <Authorized>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" @onclick="@HandleLogout">Logout</MudButton>
+            </Authorized>
+            <NotAuthorized>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" @onclick="@HandleLogin">Login</MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+        <MudIconButton Icon="fa-sign-out-alt" Edge="Edge.End" @onclick="HandleLogout" />
+    </MudAppBar>
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+*@
+@*
+@code
+{
+    private AuthenticationState authenticationState;
+    protected override async Task OnInitializedAsync()
+    {
+        authenticationState = await authenticationStateProvider.GetAuthenticationStateAsync();
+    }
+    private async void HandleLogout()
+    {
+        await JS.InvokeVoidAsync("localStorage.clear");
+        await authenticationStateProvider.GetAuthenticationStateAsync();
+        ((CustomAuthProvider)authenticationStateProvider).NotifyAuthenticationStateChangedWrapper(Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()))));
+        Navigation.NavigateToLogout("/");
+    }
+private void HandleLogin()
+    {
+        Navigation.NavigateTo("/login");
+    }
+}
+*@
+
+@*@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider authenticationStateProvider
+@using System.Security.Claims;
+
+
+<MudThemeProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<AuthorizeView>
+    <Authorized>
+        <MudAppBar Color="Color.Primary" Elevation="4">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
+            <MudLink Underline="Underline.None" Color="Color.Inherit" Href="/"><MudIconButton Icon="@Icons.Material.Outlined.CurrencyRupee" Color="Color.Inherit" Href="/" /></MudLink>
+            <MudText Typo="Typo.h2" Align="Align.Center">Wallet Tracker</MudText>
+            <MudMenu Icon="Icons.Material.Outlined.AccountCircle" Color="Color.Inherit">
+                <MudMenuItem Href="/changepassword">Change Password</MudMenuItem>
+                <MudMenuItem @onclick="@HandleLogout">Logout</MudMenuItem>
+            </MudMenu>
+        </MudAppBar>
+        <MudDrawer @bind-Open="@open" Elevation="1" Style="width: 250px; min-width: 250px;">
+            <MudNavMenu Color="Color.Info">
+                @foreach (var item in sidebarItems)
+                {
+                    <MudNavLink Href="@item.Link" Match="NavLinkMatch.All" ActiveClass="active-link">
+                        <MudIcon Icon="@item.Icon" />
+                        <MudText Typo="Typo.body1">@item.Text</MudText>
+                    </MudNavLink>
+                }
+            </MudNavMenu>
+        </MudDrawer>
+    </Authorized>
+    <NotAuthorized>
+        <MudAppBar Color="Color.Primary" Elevation="4">
+            <MudLink Underline="Underline.None" Color="Color.Inherit" Href="/"><MudIconButton Icon="@Icons.Material.Outlined.CurrencyRupee" Color="Color.Inherit" Href="/" /></MudLink>
+            <MudText Typo="Typo.h4">Wallet Tracker</MudText>
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary">LogIn</MudButton>
+        </MudAppBar>
+    </NotAuthorized>
+</AuthorizeView>
+<MudMainContent>
+    @Body
+</MudMainContent>
+@code {
+    private bool IsUserLoggedIn => true;
+    bool open = false;
+
+    void ToggleDrawer()
+    {
+        open = !open;
+    }
+    private List<NavItem> sidebarItems = new List<NavItem>
+    {
+        new NavItem { Icon = "@Icons.Material.Filled.Dashboard", Text = "User Dashboard", Link = "/userdashboard" },
+        new NavItem { Icon = "@Icons.Material.Filled.Receipt", Text = "Transactions", Link = "/transactions" },
+        new NavItem { Icon = "@Icons.Material.Filled.PlaylistAdd", Text = "Add Category", Link = "/addCategory" },
+        new NavItem { Icon = "@Icons.Material.Filled.Password", Text = "Update Password", Link = "/updatepassword" }
+    };
+
+    private List<NavItem> selectedItems = new List<NavItem>();
+
+
+    private class NavItem
+    {
+        public string Icon { get; set; }
+        public string Text { get; set; }
+        public string Link { get; set; }
+    }
+    private async void HandleLogout()
+    {
+        await JS.InvokeVoidAsync("localStorage.clear");
+        await authenticationStateProvider.GetAuthenticationStateAsync();
+        ((CustomAuthProvider)authenticationStateProvider).NotifyAuthenticationStateChangedWrapper(Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()))));
+        Navigation.NavigateToLogout("/");
+    }
+}
+*@
+
+
+@using Radzen.Blazor;
+@inherits LayoutComponentBase
+@using BlazorWalletTrackerFE.Pages;
+@using MudBlazor;
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider authenticationStateProvider
+@using System.Security.Claims;
+@inject IDialogService DialogService
+@using BlazorWalletTrackerFE.Store.UserStore;
+@using BlazorWalletTrackerFE.Store.TransactionStore;
+@using BlazorWalletTrackerFE.Store.CategoryStore;
+@inject IState<TransactionState> TransactionStorage;
+@inject IState<CategoryState> CategoryStorage;
+@inject IState<UserState> UserStorage;
+
+<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" />
+<MudDialogProvider />
+<RadzenContextMenu />
+<MudSnackbarProvider />
+<AuthorizeView>
+    <Authorized>
+        <MudLayout>
+            <StateLoader />
+            <MudAppBar Color="Color.Primary" Elevation="1">
+                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleSidebar" />
+                <MudText Typo="Typo.body1" Align="Align.Center">@pageTitle</MudText>
+                <MudSpacer />
+                <MudSwitch @bind-Checked="@_isDarkMode" Color="Color.Warning" ThumbIcon="@Icons.Material.Filled.DarkMode" T="bool" />
+                <MudMenu FullWidth="true" TransformOrigin="Origin.TopCenter" AnchorOrigin="Origin.BottomCenter">
+                    <ActivatorContent>
+                        <MudChip Icon="@Icons.Material.Filled.Person" Color="Color.Secondary">Account</MudChip>
+                    </ActivatorContent>
+                    <ChildContent>
+                        <MudMenuItem Href="/profile">Profile</MudMenuItem>
+                        <MudMenuItem OnClick="@Logout">Sign Out</MudMenuItem>
+                    </ChildContent>
+                </MudMenu>
+            </MudAppBar>
+            <MudDrawer @bind-Open="@sidebarOpen" Class="sidebar" Variant="@DrawerVariant.Temporary" Anchor="Anchor.Start" Style="text-align:center">
+                <MudAvatar Style="margin:20px auto 10px auto; height:70px; width:70px;" Image="https://s.yimg.com/ny/api/res/1.2/kwUySU9SFW2HWD8YOnO1lQ--/YXBwaWQ9aGlnaGxhbmRlcjt3PTY0MDtoPTM1Mg--/https://media.zenfs.com/en/investorplace_417/6547c6454ca0f10863600fc11f05832d" />
+                <MudText Align="Align.Center" Typo="Typo.subtitle2" Color="Color.Primary">@UserStorage.Value.User.Name</MudText>
+                <MudText Align="Align.Center" Typo="Typo.body2" Style="margin:0 0 30px 0;">@UserStorage.Value.User.Email</MudText>
+                <MudNavMenu>
+                    <MudNavLink Href="/userdashboard" Match="NavLinkMatch.All">
+                        <MudIcon Icon="Icons.Material.Dashboard" Class="mr-2" Color="Color.Inherit" />
+                        Dashboard
+                    </MudNavLink>
+                    <MudNavLink Href="/transactions" Match="NavLinkMatch.All">
+                        <MudIcon Icon="Icons.Material.List" Class="mr-2" Color="Color.Inherit" />
+                        Transactions
+                    </MudNavLink>
+                    <MudNavLink Href="/categories" Match="NavLinkMatch.All">
+                        <MudIcon Icon="Icons.Material.Add" Class="mr-2" Color="Color.Inherit" />
+                        Categories
+                    </MudNavLink>
+                    <MudNavLink Href="/updatepassword" Match="NavLinkMatch.All">
+                        <MudIcon Icon="Icons.Material.Lock" Class="mr-2" Color="Color.Inherit" />
+                        Update Password
+                    </MudNavLink>
+                </MudNavMenu>
+            </MudDrawer>
+            <MudMainContent>
+                @Body
+            </MudMainContent>
+            <MudScrollToTop>
+                <MudFab Color="Color.Tertiary" Icon="@Icons.Material.Filled.ArrowCircleUp" />
+            </MudScrollToTop>
+        </MudLayout>
+    </Authorized>
+    <NotAuthorized>
+        <MudLayout>
+            <MudAppBar Color="Color.Primary" Elevation="1">
+                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleSidebar" />
+                <MudText Typo="Typo.body1" Align="Align.Center">@pageTitle</MudText>
+                <MudSpacer />
+                <MudSwitch @bind-Checked="@_isDarkMode" Color="Color.Warning" ThumbIcon="@Icons.Material.Filled.DarkMode" T="bool" />
+                <MudButton Variant="MudBlazor.Variant.Outlined" Color="Color.Secondary" OnClick="OpenLoginDialog">LogIn</MudButton>
+            </MudAppBar>
+            <MudDrawer @bind-Open="@sidebarOpen" Class="sidebar" Variant="@DrawerVariant.Temporary" Anchor="Anchor.Start">
+                <MudNavMenu>
+                    <MudNavLink Href="#section1" Match="NavLinkMatch.All" @onclick="@(() => JS.InvokeVoidAsync("scrollToSection","#section1"))">
+                        Section 1
+                    </MudNavLink>
+                    <MudNavLink Href="#section2" Match="NavLinkMatch.All" @onclick="@(() => JS.InvokeVoidAsync("scrollToSection","#section2"))">
+                        Section 2
+                    </MudNavLink>
+                </MudNavMenu>
+            </MudDrawer>
+            <MudMainContent>
+                @Body
+            </MudMainContent>
+            <MudScrollToTop>
+                <MudFab Color="Color.Tertiary" Icon="@Icons.Material.Filled.ArrowCircleUp" />
+            </MudScrollToTop>
+        </MudLayout>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private bool _isDarkMode = false;
+    private bool sidebarOpen = true;
+    private string pageTitle = "Wallet Tracker";
+    private MudTheme theme = new MudTheme();
+
+    private void ToggleSidebar()
+    {
+        sidebarOpen = !sidebarOpen;
+    }
+
+    private async Task Logout()
+    {
+        var authenticationState = await authenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authenticationState.User;
+        if (user.Identity.IsAuthenticated)
+        {
+            await JS.InvokeVoidAsync("localStorage.clear");
+            Dispatcher.Dispatch(new ClearTransactionsStateAction());
+            Dispatcher.Dispatch(new ClearCategoryStateAction());
+            Dispatcher.Dispatch(new LogOutAction());
+            (authenticationStateProvider as CustomAuthProvider).NotifyAuthState();
+            Navigation.NavigateToLogout("/");
+        }
+    }
+
+
+    private void OpenLoginDialog()
+    {
+        DialogService.Show<LoginDialog>("Login");
+    }
+}

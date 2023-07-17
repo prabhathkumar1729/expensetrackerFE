@@ -1,0 +1,89 @@
+﻿@inject ISnackbar Snackbar
+@inherits FluxorComponent
+@using BlazorWalletTrackerFE.Shared.Models;
+@using BlazorWalletTrackerFE.Shared.Services;
+@using BlazorWalletTrackerFE.Store;
+@using BlazorWalletTrackerFE.Store.UserStore;
+@using BlazorWalletTrackerFE.Store.TransactionStore;
+@using BlazorWalletTrackerFE.Store.CategoryStore;
+@inject IDispatcher Dispatcher
+@inject IState<UserState> UserStorage;
+@inject IState<TransactionState> TransactionStorage;
+@inject IState<CategoryState> CategoryStorage;
+@inject IDialogService DialogService
+
+<PageTitle>Add Transaction</PageTitle>
+<MudCard>
+<MudCardHeader>
+        <MudText Typo="Typo.h5">Add Transaction</MudText>
+</MudCardHeader>
+    <MudForm @ref="form" Model="transaction" Validation="addTransactionValidation">
+        <MudNumericField Label="Amount"
+                         @bind-Value="transaction.Amount"
+                         Required=true
+                         For="@(() => transaction.Amount)"
+                         Immediate="true" />
+        <MudTextField Label="Description"
+                      @bind-Value="transaction.Description"
+                      OnlyValidateIfDirty="true"
+                      Required=true
+                      For="@(() => transaction.Description)"
+                      Immediate="true" />
+        <MudDatePicker @bind-Date="transaction.TransactionDate"
+                       PickerVariant="PickerVariant.Dialog"
+                       MaxDate="DateTime.Now"
+                       MinDate=DateTime.Now.AddYears(-1)
+                       Placeholder="Select Date"
+                       Required=true
+                       For="@(() => transaction.TransactionDate)"
+                       />
+        <MudSelect Label="Category"
+                   @bind-Value="transaction.Category"
+                   Variant="MudBlazor.Variant.Filled"
+                   For="@(() => transaction.Category)"
+                   Immediate="true">
+            @foreach (var category in CategoryStorage.Value.CategoryList)
+            {
+                <MudSelectItem Value="@category">@category</MudSelectItem>
+            }
+        </MudSelect>
+        <MudCardActions>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="AddTransaction">Add Transaction</MudButton>
+        </MudCardActions>
+    </MudForm>
+</MudCard>
+@code {
+    Transaction transaction = new Transaction();
+    MudForm form;
+
+    public class AddTransactionValidation : AbstractValidator<Transaction>
+    {
+        public AddTransactionValidation()
+        {
+            RuleFor(x => x.Amount).NotEmpty().WithMessage("Amount is required");
+            RuleFor(x => x.Description).NotEmpty().WithMessage("Description is required");
+            RuleFor(x => x.TransactionDate).NotEmpty().WithMessage("Transaction Date is required");
+            RuleFor(x => x.Category).NotEmpty().WithMessage("Category is required");
+        }
+
+
+    }
+    AddTransactionValidation addTransactionValidation = new AddTransactionValidation();
+    private async Task AddTransaction()
+    {
+        await form.Validate();
+        if (form.IsValid == false)
+        {
+            Snackbar.Add("Please fill all required fields", MudBlazor.Severity.Error);
+        }
+        else
+        {
+
+            transaction.UserId = UserStorage.Value.User.Id;
+            Dispatcher.Dispatch(new AddTransactionAction { Transaction = transaction });
+            Snackbar.Add("Transaction Added", MudBlazor.Severity.Success);
+            //transaction = new Transaction();
+
+        }
+    }
+}

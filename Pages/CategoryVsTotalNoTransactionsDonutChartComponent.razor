@@ -1,0 +1,40 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using BlazorWalletTrackerFE.Shared.Models;
+
+<div class="container" stlye="margin: auto 10px auto auto;">
+    Category Vs Number of Transactions
+    <RadzenChart>
+        <RadzenDonutSeries Data="@categoriesAndNoTransactions" CategoryProperty="Category" ValueProperty="TotalNumberOfTransactions">
+            <ChildContent>
+                <RadzenSeriesDataLabels Visible="true" />
+            </ChildContent>
+            <TooltipTemplate Context="data">
+                <div>
+                    Made <strong>@data.TotalNumberOfTransactions</strong> on
+                    <strong>@data.Category</strong><br />
+                    <span>@_dateRange.Start - @_dateRange.End</span>
+                </div>
+            </TooltipTemplate>
+        </RadzenDonutSeries>
+
+        <RadzenLegend Visible=false />
+    </RadzenChart>
+
+</div>
+
+@code {
+    [Parameter]
+    public CategoryVsTotalNoTransactions[] categoriesAndNoTransactions { get; set; }
+    [Parameter]
+    public DateRange _dateRange { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        Console.WriteLine("I started Category Vs Total No Transactions Component");
+        //base.OnInitialized();
+        Console.WriteLine("I finished Category Vs Total No Transactions Component");
+    }
+}
+

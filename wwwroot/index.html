@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>BlazorWalletTrackerFE</title>
+    <base href="/" />
+    <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+    <link href="css/app.css" rel="stylesheet" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link href="BlazorWalletTrackerFE.styles.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
+    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="_content/Radzen.Blazor/css/default-base.css">
+    <style>
+        /*.lds-circle {
+            display: inline-block;
+            width: 51px;
+            height: 51px;
+            margin: 6px;
+            border-radius: 50%;
+            background: #e69010;
+            border: black;
+            animation: lds-circle 2.4s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+        }
+
+        @keyframes lds-circle {
+            0%, 100% {
+                animation-timing-function: cubic-bezier(0.5, 0, 1, 0.5);
+            }
+
+            0% {
+                transform: rotateY(0deg);
+            }
+
+            50% {
+                transform: rotateY(1800deg);
+                animation-timing-function: cubic-bezier(0, 0.5, 0.5, 1);
+            }
+
+            100% {
+                transform: rotateY(3600deg);
+            }
+        }*/
+
+
+        .loadingcontainer {
+            font-size: 0;
+            width: 420px;
+            height: 100px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate3d(-50%, -50%, 0);
+        }
+
+        .dot {
+            background: #2A2C31;
+            width: 10px;
+            height: 10px;
+            margin: 0 2px;
+            display: inline-block;
+            border-radius: 50%;
+        }
+
+            .dot:nth-last-of-type(1) {
+                animation: bounce 0.401s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(2) {
+                animation: bounce 0.402s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(3) {
+                animation: bounce 0.403s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(4) {
+                animation: bounce 0.404s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(5) {
+                animation: bounce 0.405s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(6) {
+                animation: bounce 0.406s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(7) {
+                animation: bounce 0.407s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(8) {
+                animation: bounce 0.408s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(9) {
+                animation: bounce 0.409s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(10) {
+                animation: bounce 0.410s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(11) {
+                animation: bounce 0.411s ease-in-out alternate infinite
+            }
+
+            .dot:nth-last-of-type(12) {
+                animation: bounce 0.412s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(13) {
+                animation: bounce 0.413s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(14) {
+                animation: bounce 0.414s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(15) {
+                animation: bounce 0.415s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(16) {
+                animation: bounce 0.416s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(17) {
+                animation: bounce 0.417s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(18) {
+                animation: bounce 0.418s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(19) {
+                animation: bounce 0.419s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(20) {
+                animation: bounce 0.420s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(21) {
+                animation: bounce 0.421s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(22) {
+                animation: bounce 0.422s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(23) {
+                animation: bounce 0.423s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(24) {
+                animation: bounce 0.424s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(25) {
+                animation: bounce 0.425s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(26) {
+                animation: bounce 0.426s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(27) {
+                animation: bounce 0.427s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(28) {
+                animation: bounce 0.428s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(29) {
+                animation: bounce 0.429s ease-in-out alternate infinite;
+            }
+
+            .dot:nth-last-of-type(30) {
+                animation: bounce 0.430s ease-in-out alternate infinite;
+            }
+
+        @keyframes bounce {
+            0% {
+                transform: translateY(0px);
+            }
+
+            100% {
+                transform: translateY(90px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <!--<svg class="loading-progress">
+            <circle r="40%" cx="50%" cy="50%" />
+            <circle r="40%" cx="50%" cy="50%" />
+        </svg>-->
+        <!--<div class="lds-circle"></div>
+        <div class="loading-progress-text"></div>-->
+
+        <div class='loadingcontainer'>
+            <!--<div class='dot'></div>
+            <div class='dot'></div>-->
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+            <div class='dot'></div>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script>
+        function scrollToSection(sectionId) {
+            document.querySelector(sectionId).scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    <script type="text/javascript" src="GCharts.js"></script>
+    <script src="googlechartsinterop.js"></script>
+    <script>
+        window.drawChart = (chartData) => {
+            google.charts.setOnLoadCallback(drawChart);
+
+            function drawChart() {
+                var data = google.visualization.arrayToDataTable(chartData);
+
+                var options = {
+                    isStacked: true,
+                    height: 300,
+                    legend: { position: 'top', maxLines: 3 },
+                    vAxis: { minValue: 0 },
+                };
+
+                var chart = new google.visualization.ColumnChart(document.getElementById('chart'));
+                chart.draw(data, options);
+            }
+        };
+
+    </script>
+</body>
+
+</html>

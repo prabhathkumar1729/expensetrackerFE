@@ -1,0 +1,29 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using BlazorWalletTrackerFE.Shared.Models;
+<div class="container" stlye="margin: auto 10px auto auto;">
+Number of transactions made across the period
+    <RadzenChart>
+        @foreach (string category in categories)
+        {
+            var filteredData = dataItems?.Where(x => x.Category == category).ToArray();
+            <RadzenStackedColumnSeries Data="@filteredData" CategoryProperty="Month" Title="@category" ValueProperty="TotalNumberOfTransactionsInTheMonth" />
+            <RadzenSeriesDataLabels Visible="false" />
+        }
+        <RadzenColumnOptions Radius="0" Margin="5"  Width="10"/>
+        <RadzenValueAxis Min="0" >
+            <RadzenGridLines Visible="true"  StrokeWidth="3"/>
+            <RadzenAxisTitle Text="Transactions" />
+        </RadzenValueAxis>
+        <RadzenLegend Position="LegendPosition.Bottom"  />
+    </RadzenChart>
+</div>
+
+
+
+@code {
+    [Parameter]
+    public DataItem[] dataItems { get; set; }
+    [Parameter]
+    public string[] categories { get; set; }
+}

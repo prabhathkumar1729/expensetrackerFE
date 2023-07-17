@@ -1,0 +1,127 @@
+﻿@page "/categories"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using BlazorWalletTrackerFE.Store.CategoryStore;
+@inject ISnackbar Snackbar;
+@inject IState<CategoryState> CategoryStorage;
+@inject IDialogService DialogService;
+@using BlazorWalletTrackerFE.Store.UserStore;
+@inject IState<UserState> UserStorage;
+
+<MudPaper Height="100px" Width="80%">
+    <MudTable Items="CategoryStorage.Value.CategoryList"
+              Dense=true
+              Hover=true
+              Bordered=true
+              ReadOnly=true
+              CanCancelEdit=true
+              Filter="new Func<string, bool>(FilterFunc)"
+              SortLabel="Sort By"
+              RowEditPreview="BackupItem"
+              RowEditCancel="ResetItemToOriginalValues"
+              FixedHeader=true
+              FixedFooter=true
+              Striped=true
+              @ref="_table1"
+              T="string">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Categories</MudText>
+            <MudSpacer />
+            <MudButton Color="Color.Default" Variant="Variant.Filled" OnClick="@AddNew">Add New</MudButton>
+
+            <MudSpacer />
+            <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>
+                <MudTableSortLabel SortBy="new Func<string, object>(x => x)">
+                    Category
+                </MudTableSortLabel>
+            </MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                @context
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(()=>DeleteCategory(context))" />
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Outlined.Edit" Class="pa-0" OnClick="@(()=>EditCategory(context))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+
+@code {
+    private string categoryBeforeEdit;
+    private string searchString = "";
+    private MudTable<string> _table1;
+    public List<string> categoryList = new List<string>();
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+    }
+    private void BackupItem(object item)
+    {
+        categoryBeforeEdit = (string)item;
+    }
+    private void ResetItemToOriginalValues(object item)
+    {
+        item = categoryBeforeEdit;
+    }
+    private bool FilterFunc(string item)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (item?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private async Task DeleteCategory(string category)
+    {
+        await JS.InvokeVoidAsync("console.log", " I RECEIVED THIS CATEGORY    ", category);
+
+        var parameters = new DialogParameters();
+        parameters.Add("UserId", UserStorage.Value.User.Id);
+        parameters.Add("Category", category);
+        DialogService.Show<CategoryDeleteDialog>("Delete Category", parameters);
+        categoryList = CategoryStorage.Value.CategoryList;
+    }
+
+    private async Task EditCategory(string category)
+    {
+
+        var parameters = new DialogParameters();
+        //parameters.Add("ContentText", "Do you really want to update this category. This process cannot be undone.");
+        //parameters.Add("ButtonText", "Confirm");
+        parameters.Add("OldCategoryName", category);
+        parameters.Add("NewCategoryName", category);
+        parameters.Add("UserId", UserStorage.Value.User.Id);
+        var dialog = DialogService.Show<EditCategoryDialogComponent>("Edit Category", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            Snackbar.Add("Category Updated Successfully", MudBlazor.Severity.Success);
+            categoryList = CategoryStorage.Value.CategoryList;
+        }
+    }
+
+    private async Task AddNew()
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("UserId", UserStorage.Value.User.Id);
+        parameters.Add("CategoryList", CategoryStorage.Value.CategoryList);
+        var dialog = DialogService.Show<AddCategoryDialogComponent>("Add New Category", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            Snackbar.Add("Category Added Successfully", MudBlazor.Severity.Success);
+            categoryList = CategoryStorage.Value.CategoryList;
+        }
+    }
+}

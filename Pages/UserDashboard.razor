@@ -1,0 +1,467 @@
+﻿@page "/userdashboard"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using BlazorWalletTrackerFE.Shared.Models;
+@using BlazorWalletTrackerFE.Shared.Services;
+@using BlazorWalletTrackerFE.Store.UserStore;
+@using BlazorWalletTrackerFE.Store.TransactionStore;
+@using BlazorWalletTrackerFE.Store.CategoryStore;
+@inject IDispatcher Dispatcher
+@inject IState<UserState> UserStorage;
+@inject IState<TransactionState> TransactionStorage;
+@inject IState<CategoryState> CategoryStorage;
+@using MudBlazor.Charts;
+@using System.Globalization
+@using System.Collections.Generic;
+@using System.Linq;
+<div class="left-half">
+    <AddTransactionComponent />
+</div>
+<div class="right-half">
+    @if (_isLoading)
+    {
+        <div> Loading......... </div>
+    }
+    else
+    {
+        <div>
+            <MudDateRangePicker Label="Basic range picker" PickerVariant="PickerVariant.Dialog" @bind-DateRange="_dateRangeUI" MaxDate="DateTime.Now" MinDate="DateTime.Now.AddMonths(-11)" />
+            @*<div class="rz-p-sm-12 rz-text-align-center rz-color-primary-light">
+        <RadzenDropDown @bind-Value=@selectedCategories Data=@categories
+        Multiple=true AllowClear=true Placeholder="Select categories" Chips=true Style="width: 100%; max-width: 400px; color: orange" />
+        </div>*@
+            @* <>
+        <MudSelect T="string" MultiSelection="true" SelectAll="true" @bind-SelectedValues="@selectedCategories">
+        @foreach (Category category in @categories)
+        {
+        <MudSelectItem T="string" Value="@category.Name">@category.Name</MudSelectItem>
+        }
+        </MudSelect>
+        </>*@
+            <MudSelect T="string" MultiSelection="true" SelectAll="true" SelectedValues="@selectedCategories" SelectedValuesChanged="HandleSelectedCategoriesChanged">
+                @foreach (string category in @categories)
+                {
+                    <MudSelectItem T="string" Value="@category">@category</MudSelectItem>
+                }
+            </MudSelect>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="()=>RefreshData(_dateRangeUI, selectedCategories)">Refresh Data</MudButton>
+            <div style="margin:10px">
+                @if (TotalNoOfTransactions > 0)
+                {
+
+                    <CategoryVsTotalSpendsPieChartComponent categoriesAndSpendings="@categoriesAndSpendings" _dateRange="@_dateRangeUI" />
+                    <CategoryVsTotalNoTransactionsDonutChartComponent categoriesAndNoTransactions="@categoriesAndNoTransactions" _dateRange="_dateRangeUI" />
+                    <SpendingsTrendsComponent spendingsStatistics="@spendingsStatistics" />
+                    <TransactionsTrendsComponent noOfTransactionsStatistics="@noOfTransactionsStatistics" />
+                    <SpendingsStackedColumnChartComponent dataItems="@dataItems" categories="@dataItems.Select(x => x.Category).Distinct().ToArray()" />
+                    <TransactionsStackedBarChartComponent dataItems="@dataItems" categories="@dataItems.Select(x => x.Category).Distinct().ToArray()" />
+
+                    @*<StackedColumnComponent dataItems="@dataItems" />*@
+                    @*<GoogleColumnChartComponent DataItems="@dataItems" />*@
+                    @*<div id="columnchart_values" style="width: 900px; height: 300px;"></div>*@
+                }
+                else
+                {
+                    <div class="rz-p-sm-12 rz-text-align-center rz-color-primary-light">
+                        <h3>No transactions found for the selected date range</h3>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code
+{
+    private bool _isLoading = true;
+
+    private List<string> selectedCategories = new List<string>();
+    private List<Transaction> transactions;
+    private List<string> categories;
+    private DateRange _dateRangeUI = new DateRange(DateTime.Now.AddDays(-30).Date, DateTime.Now.Date);
+    public int numberOfDays;
+    public int TotalNoOfTransactions;
+    DataItem[] dataItems;
+    CategoryVsTotalSpendings[] categoriesAndSpendings;
+    CategoryVsTotalNoTransactions[] categoriesAndNoTransactions;
+    NoOfTransactionsStatistics[] noOfTransactionsStatistics;
+    SpendingsStatistics[] spendingsStatistics;
+
+    private void HandleSelectedCategoriesChanged(IEnumerable<string> values)
+    {
+        selectedCategories = values.ToList();
+    }
+
+    protected override void OnInitialized()
+    {
+        _isLoading = true;
+        base.OnInitialized();
+        selectedCategories = CategoryStorage.Value.CategoryList;
+        RefreshData(_dateRangeUI,selectedCategories);
+        _isLoading = false;
+    }
+
+    //protected override void OnAfterRender(bool firstRender)
+    //{
+    //    _isLoading = true;
+    //    base.OnAfterRender(firstRender);
+    //    if (firstRender)
+    //    {
+    //        RefreshData();
+    //    }
+    //    _isLoading = false;
+    //}
+
+    //protected override void OnParametersSet()
+    //{
+    //    _isLoading = true;
+    //    base.OnParametersSet();
+    //    RefreshData();
+    //    _isLoading = false;
+    //}
+
+    private void RefreshData(DateRange _dateRange, List<string> selectedValues)
+    {
+        transactions = TransactionStorage.Value.Transactions.Where(x => x.TransactionDate >= _dateRange.Start && x.TransactionDate <= _dateRange.End).ToList();
+        categories = CategoryStorage.Value.CategoryList;
+
+        TotalNoOfTransactions = transactions.Count();
+        if (TotalNoOfTransactions > 0)
+        {
+
+            //tempTran = transactions.Select(x=>x.).Where(x => x.TransactionDate >= _dateRange.Start && x.TransactionDate <= _dateRange.End && selectedCategory.Contains(x.Category)).ToList();
+            //.Select(category => category == action.oldCategory ? action.newCategory : category)
+            //var groupedTransactions = transactions
+            //.Where(t => selectedCategories.Contains(t.Category))
+            //.GroupBy(t => new { t.Category, t.TransactionDate?.Month })
+            //.Select(g => new DataItem
+            //    {
+            //        Category = g.Key.Category,
+            //        Month = g.Key.Month,
+            //        TotalSpendingsInTheMonth = g.Sum(t => (double)t.Amount)
+            //    })
+            //.ToList();
+            Console.WriteLine("this is the starting date: ");
+            Console.WriteLine(_dateRange.Start);
+            Console.WriteLine("this is the starting date: ");
+            Console.WriteLine(_dateRange.End);
+            Console.WriteLine("Selected categories are ");
+            foreach (var d in selectedCategories)
+            {
+                Console.WriteLine(d);
+            }
+            Console.WriteLine("Leaving the selected categories");
+            var groupedTransactions = Enumerable.Range(0, ((_dateRange.End?.Year ?? 0) - (_dateRange.Start?.Year ?? 0)) * 12 + ((_dateRange.End?.Month ?? 0) - (_dateRange.Start?.Month ?? 0)) + 1)
+                .Select(offset => (_dateRange.Start?.AddMonths(offset)).GetValueOrDefault())
+                .SelectMany(date => selectedCategories.Select(category => new { Category = category, Month = date.ToString("MMM") }))
+                .GroupJoin(
+                    transactions.Where(t => selectedCategories.Contains(t.Category) && t.TransactionDate >= _dateRange.Start && t.TransactionDate <= _dateRange.End),
+                    keySelector => new { keySelector.Category, keySelector.Month },
+                    elementSelector => new { elementSelector.Category, Month = elementSelector.TransactionDate?.ToString("MMM") },
+                    (key, elements) => new DataItem
+                        {
+                            Category = key.Category,
+                            Month = key.Month,
+                            TotalSpendingsInTheMonth = elements.Sum(t => (double)t.Amount),
+                            TotalNumberOfTransactionsInTheMonth = elements.Count()
+                        })
+                .ToList();
+
+            //Console.WriteLine("I am in group transactions");
+            //foreach (var d in groupedTransactions)
+            //{
+            //    Console.WriteLine(d.Category);
+            //    Console.WriteLine(d.Month);
+            //    Console.WriteLine(d.TotalSpendingsInTheMonth);
+            //    Console.WriteLine(d.TotalNumberOfTransactionsInTheMonth);
+            //}
+            //Console.WriteLine("I am leaving groupedtransactions");
+
+
+            // Calculate remaining spendings for transactions not in the selected list
+            //var remainingTransactions = transactions
+            //    .Where(t => !selectedCategories.Contains(t.Category))
+            //    .GroupBy(t => t.TransactionDate?.ToString("MMM"))
+            //    .Select(g => new DataItem
+            //        {
+            //            Category = "Remaining",
+            //            Month = g.Key,
+            //            TotalSpendingsInTheMonth = g.Sum(t => (double)t.Amount),
+            //            TotalNumberOfTransactionsInTheMonth = g.Count()
+            //        })
+            //    .ToList();
+
+            //    DateTime? startDate = _dateRange.Start;
+            //    DateTime? endDate = _dateRange.End;
+
+            //    var remainingTransactions = transactions
+            //.Where(t => !selectedCategories.Contains(t.Category))
+            //.GroupBy(t => t.TransactionDate?.ToString("MMM"))
+            //.Select(g => new DataItem
+            //    {
+            //        Category = "Remaining",
+            //        Month = g.Key,
+            //        TotalSpendingsInTheMonth = g.Sum(t => (double)t.Amount),
+            //        TotalNumberOfTransactionsInTheMonth = g.Count()
+            //    })
+            //.ToList();
+
+            var remainingTransactions = Enumerable.Range(0, ((_dateRange.End?.Year ?? 0) - (_dateRange.Start?.Year ?? 0)) * 12 + ((_dateRange.End?.Month ?? 0) - (_dateRange.Start?.Month ?? 0)) + 1)
+            .Select(offset => (_dateRange.Start?.AddMonths(offset)).GetValueOrDefault())
+            .Select(month =>
+            {
+                var monthTransactions = transactions
+                    .Where(t => t.TransactionDate?.Month == month.Month && !selectedCategories.Contains(t.Category))
+                    .ToList();
+
+                var totalSpendings = monthTransactions.Sum(t => t.Amount);
+                var totalNumberOfTransactions = monthTransactions.Count;
+
+                return new DataItem
+                    {
+                        Category = "Remaining",
+                        Month = month.ToString("MMM"),
+                        TotalSpendingsInTheMonth = (double)totalSpendings,
+                        TotalNumberOfTransactionsInTheMonth = totalNumberOfTransactions
+                    };
+            })
+            .ToList();
+
+
+            //Console.WriteLine("I am in Remaining transactions");
+            //foreach (var d in remainingTransactions)
+            //{
+            //    Console.WriteLine(d.Category);
+            //    Console.WriteLine(d.Month);
+            //    Console.WriteLine(d.TotalSpendingsInTheMonth);
+            //    Console.WriteLine(d.TotalNumberOfTransactionsInTheMonth);
+            //}
+            //Console.WriteLine("I am leaving Remaining transactions");
+
+            // Combine the grouped transactions and remaining spendings
+            groupedTransactions.AddRange(remainingTransactions);
+
+            // Convert the combined result to DataItem[]
+            dataItems = groupedTransactions.ToArray();
+
+
+            //Console.WriteLine("I am starting the dataItems");
+            //foreach (var d in dataItems)
+            //{
+            //    Console.WriteLine(d.Category);
+            //    Console.WriteLine(d.Month);
+            //    Console.WriteLine(d.TotalSpendingsInTheMonth);
+            //    Console.WriteLine(d.TotalNumberOfTransactionsInTheMonth);
+            //}
+            //Console.WriteLine("I am ending the dataItems");
+
+            categoriesAndSpendings = dataItems
+           .GroupBy(t => t.Category)
+           .Select(g => new CategoryVsTotalSpendings
+               {
+                   Category = g.Key,
+                   TotalSpendings = g.Sum(t => t.TotalSpendingsInTheMonth)
+               })
+           .ToArray();
+
+            Console.WriteLine("I have crossed categoriesAndSpendings");
+            categoriesAndNoTransactions = dataItems
+            .GroupBy(t => t.Category)
+           .Select(g => new CategoryVsTotalNoTransactions
+               {
+                   Category = g.Key,
+                   TotalNumberOfTransactions = g.Sum(t => t.TotalNumberOfTransactionsInTheMonth)
+               })
+            .ToArray();
+
+            Console.WriteLine("I have crossed categoriesAndNoTransactions");
+
+            spendingsStatistics = dataItems
+            //.Where(t => selectedCategories.Contains(t.Category))
+            .GroupBy(t => t.Month)
+            .Select(g => new SpendingsStatistics
+                {
+                    Month = g.Key,
+                    TotalSpendingsInTheMonth = g.Sum(t => t.TotalSpendingsInTheMonth)
+                })
+            .ToArray();
+
+            Console.WriteLine("I have crossed spendingsStatistics");
+
+            noOfTransactionsStatistics = dataItems
+            //.Where(t => selectedCategories.Contains(t.Category))
+            .GroupBy(t => t.Month)
+            .Select(g => new NoOfTransactionsStatistics
+                {
+                    Month = g.Key,
+                    TotalNumberOfTransactionsInTheMonth = g.Sum(t => t.TotalNumberOfTransactionsInTheMonth)
+                })
+            .ToArray();
+
+            Console.WriteLine("I have crossed noOfTransactionsStatistics");
+        }
+        //Console.WriteLine("This is the spendings statistics");
+        //foreach (var d in spendingsStatistics)
+        //{
+        //    Console.WriteLine(d.Month);
+        //    Console.WriteLine(d.TotalSpendingsInTheMonth);
+        //}
+        //Console.WriteLine("This is the end of spendings statistics");
+
+        //Console.WriteLine("This is the no of transactions statistics");
+        //foreach (var d in noOfTransactionsStatistics)
+        //{
+        //    Console.WriteLine(d.Month);
+        //    Console.WriteLine(d.TotalNumberOfTransactionsInTheMonth);
+        //}
+        //Console.WriteLine("This is the end of transactions statistics");
+
+
+        //Console.WriteLine("This is the category in array:   ", dataItems[0].Category);
+        //Console.WriteLine("This is the total spendings of that category:   ", dataItems[0].TotalSpendingsInTheMonth);
+        //Console.WriteLine("This is the size of array:   ", categoriesAndSpendings.Length);
+    }
+
+    //Console.WriteLine(_dateRange.)
+
+
+
+
+}
+@*
+@code
+{
+    private IList<string> selectedCategories = new List<string>();
+    private List<Transaction> transactions;
+    private List<string> categories;
+    private DateTime startDate;
+    private DateTime endDate = DateTime.Now;
+    private string selectedCategory;
+    private DateRange? _dateRange = new DateRange(DateTime.Now.AddDays(-30).Date, DateTime.Now.Date);
+    private TimeSpan? noOfdaysRange;
+    public int numberOfDays;
+    DataItem[] dataItems = new DataItem[0];
+    CategoryVsTotalSpendings[] categoriesAndSpendings = new CategoryVsTotalSpendings[0];
+    CategoryVsTotalNoTransactions[] categoriesAndNoTransactions = new CategoryVsTotalNoTransactions[0];
+    NoOfTransactionsStatistics[] noOfTransactionsStatistics = new NoOfTransactionsStatistics[0];
+    SpendingsStatistics[] spendingsStatistics = new SpendingsStatistics[0];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshData();
+    }
+
+    private async Task RefreshData()
+    {
+        transactions = TransactionStorage.Value.Transactions.Where(x => x.TransactionDate >= _dateRange.Start && x.TransactionDate <= _dateRange.End).ToList();
+        categories = CategoryStorage.Value.CategoryList;
+
+        var groupedTransactions = Enumerable.Range(0, ((_dateRange.End?.Year ?? 0) - (_dateRange.Start?.Year ?? 0)) * 12 + ((_dateRange.End?.Month ?? 0) - (_dateRange.Start?.Month ?? 0)) + 1)
+            .Select(offset => (_dateRange.Start?.AddMonths(offset)).GetValueOrDefault())
+            .SelectMany(date => selectedCategories.Select(category => new { Category = category, Month = date.ToString("MMM") }))
+            .GroupJoin(
+                transactions.Where(t => selectedCategories.Contains(t.Category) && t.TransactionDate >= _dateRange.Start && t.TransactionDate <= _dateRange.End),
+                keySelector => new { keySelector.Category, keySelector.Month },
+                elementSelector => new { elementSelector.Category, Month = elementSelector.TransactionDate?.ToString("MMM") },
+                (key, elements) => new DataItem
+                    {
+                        Category = key.Category,
+                        Month = key.Month,
+                        TotalSpendingsInTheMonth = elements.Sum(t => (double)t.Amount),
+                        TotalNumberOfTransactionsInTheMonth = elements.Count()
+                    })
+            .ToList();
+
+        // Calculate remaining spendings for transactions not in the selected list
+        var remainingTransactions = transactions
+    .Where(t => !selectedCategories.Contains(t.Category))
+    .GroupBy(t => t.TransactionDate?.ToString("MMM"))
+    .Select(g => new DataItem
+        {
+            Category = "Remaining",
+            Month = g.Key,
+            TotalSpendingsInTheMonth = g.Sum(t => (double)t.Amount),
+            TotalNumberOfTransactionsInTheMonth = g.Count()
+        })
+    .ToList();
+
+        //Combine the grouped transactions and remaining spendings
+        groupedTransactions.AddRange(remainingTransactions);
+
+        //Convert the combined result to DataItem[]
+        dataItems = groupedTransactions.ToArray();
+
+        Console.WriteLine("Selected categories are ");
+        foreach (var d in selectedCategories)
+        {
+            Console.WriteLine(d);
+        }
+
+        Console.WriteLine(_dateRange.Start);
+        foreach (var d in dataItems)
+        {
+            Console.WriteLine("Helllllllllllloooo world started");
+            Console.WriteLine(d.Category);
+            Console.WriteLine(d.Month);
+            Console.WriteLine(d.TotalSpendingsInTheMonth);
+            Console.WriteLine(d.TotalNumberOfTransactionsInTheMonth);
+            Console.WriteLine("Hello world ended");
+        }
+
+        Console.WriteLine(_dateRange.End);
+        categoriesAndSpendings = dataItems
+            .GroupBy(t => t.Category)
+            .Select(g => new CategoryVsTotalSpendings
+                {
+                    Category = g.Key,
+                    TotalSpendings = g.Sum(t => t.TotalSpendingsInTheMonth)
+                })
+            .ToArray();
+
+        categoriesAndNoTransactions = dataItems
+            .GroupBy(t => t.Category)
+            .Select(g => new CategoryVsTotalNoTransactions
+                {
+                    Category = g.Key,
+                    TotalNumberOfTransactions = g.Sum(t => t.TotalNumberOfTransactionsInTheMonth)
+                })
+            .ToArray();
+
+        spendingsStatistics = dataItems
+        .GroupBy(t => t.Month)
+        .Select(g => new SpendingsStatistics
+            {
+                Month = g.Key,
+                TotalSpendingsInTheMonth = g.Sum(t => t.TotalSpendingsInTheMonth)
+            })
+        .ToArray();
+
+        Console.WriteLine("This is the spendings statistics");
+        foreach (var d in spendingsStatistics)
+        {
+            Console.WriteLine(d.Month);
+            Console.WriteLine(d.TotalSpendingsInTheMonth);
+        }
+        Console.WriteLine("This is the end of spendings statistics");
+
+
+
+
+        noOfTransactionsStatistics = dataItems
+        .GroupBy(t => t.Month)
+                .Select(g => new NoOfTransactionsStatistics
+                    {
+                        Month = g.Key,
+                        TotalNumberOfTransactionsInTheMonth = g.Sum(t => t.TotalNumberOfTransactionsInTheMonth)
+                    })
+                .ToArray();
+
+        Console.WriteLine("This is the no of transactions statistics");
+        foreach (var d in noOfTransactionsStatistics)
+        {
+            Console.WriteLine(d.Month);
+            Console.WriteLine(d.TotalNumberOfTransactionsInTheMonth);
+        }
+    }
+}
+*@

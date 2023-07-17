@@ -1,0 +1,265 @@
+﻿@page "/transactions"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using System.Net.Http.Json
+@using System.Linq
+@using System.Net.Http
+@using System.Threading.Tasks
+@using MudBlazor
+@inject HttpClient httpClient
+@inject ISnackbar Snackbar
+@inherits FluxorComponent
+@using BlazorWalletTrackerFE.Shared.Models;
+@using BlazorWalletTrackerFE.Shared.Services;
+@using BlazorWalletTrackerFE.Store;
+@using BlazorWalletTrackerFE.Store.UserStore;
+@using BlazorWalletTrackerFE.Store.TransactionStore;
+@using BlazorWalletTrackerFE.Store.CategoryStore;
+@inject IDispatcher Dispatcher
+@inject IState<UserState> UserStorage;
+@inject IState<TransactionState> TransactionStorage;
+@inject IState<CategoryState> CategoryStorage;
+@inject IDialogService DialogService
+
+<MudPaper Height="100px" Width="80%">
+    <MudTable Items="TransactionStorage.Value.Transactions"
+              Dense=true
+              Hover=true
+              Bordered=true
+              ReadOnly=false
+              CanCancelEdit=true
+              Filter="new Func<Transaction,bool>(FilterFunc)"
+              SortLabel="Sort By"
+              CommitEditTooltip="Save the changes"
+              OnCommitEditClick="@(() => Snackbar.Add("Commit Edit Handler Invoked"))"
+              RowEditPreview="BackupItem"
+              RowEditCancel="ResetItemToOriginalValues"
+              FixedHeader=true
+              FixedFooter=true
+              RowEditCommit="ItemHasBeenCommitted"
+              IsEditRowSwitchingBlocked=true
+              ApplyButtonPosition="TableApplyButtonPosition.End"
+              EditButtonPosition="TableEditButtonPosition.End"
+              EditTrigger="TableEditTrigger.EditButton"
+              MultiSelection=true
+              SelectOnRowClick=true
+              Striped=true
+              
+              @ref="_table"
+              T="Transaction"
+              @bind-SelectedItems="selectedItems">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Transactions</MudText>
+            <MudSpacer />
+            <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="@DeleteMultipleItems">Delete Selected</MudButton>
+            <MudSpacer />
+            <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>
+                <MudTableSortLabel SortBy="new Func<Transaction, object>(x=>x.Category) ">
+                    Category
+                </MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                <MudTableSortLabel SortBy="new Func<Transaction, object>(x=>x.Amount) ">
+                    Amount
+                </MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="new Func<Transaction, object>(x=>x?.TransactionDate) ">
+                    TransactionDate
+                </MudTableSortLabel>
+            </MudTh>
+            <MudTh>
+                <MudTableSortLabel SortBy="new Func<Transaction, object>(x=>x.Description) ">
+                    Description
+                </MudTableSortLabel>
+            </MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Category">@context.Category</MudTd>
+            <MudTd DataLabel="Amount">@context.Amount</MudTd>
+            <MudTd DataLabel="TransactionDate">@context.TransactionDate</MudTd>
+            <MudTd DataLabel="Description">@context.Description</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(()=>DeleteItem(context))" />
+            </MudTd>
+        </RowTemplate>
+        <RowEditingTemplate>
+            @*<MudTd>
+            <MudTextField @bind-Value="@context.Category" />
+            </MudTd>*@
+            <MudTd>
+                <MudSelect @bind-Value="@context.Category" Label="Category" Required=true>
+                    @foreach (string category in CategoryStorage.Value.CategoryList)
+                    {
+                        <MudSelectItem Value="@category" />
+                    }
+                </MudSelect>
+            </MudTd>
+            <MudTd>
+                <MudNumericField @bind-Value="@context.Amount" Required=true/>
+            </MudTd>
+            <MudTd>
+                <MudDatePicker @bind-Date="@context.TransactionDate" PickerVariant="PickerVariant.Dialog" MaxDate="DateTime.Now" Required=true />
+            </MudTd>
+            <MudTd>
+                <MudTextField @bind-Value="@context.Description" Required=true />
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(()=>DeleteItem(context))" />
+            </MudTd>
+        </RowEditingTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+        <EditButtonContent Context="button">
+            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit" Class="pa-0" OnClick="@button.ButtonAction" Disabled="@button.ButtonDisabled" />
+        </EditButtonContent>
+        <FooterContent>
+            <MudTd colspan="5">Select All</MudTd>"
+
+        </FooterContent>
+    </MudTable>
+</MudPaper>
+
+
+
+
+
+
+@code {
+    private Transaction elementBeforeEdit;
+    private string searchString = "";
+    private MudTable<Transaction> _table;
+    private HashSet<Transaction> selectedItems = new HashSet<Transaction>();
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        Console.WriteLine("hello bhai");
+    }
+    private void BackupItem(object element)
+    {
+        elementBeforeEdit = new()
+            {
+
+                Category = ((Transaction)element).Category,
+                Amount = ((Transaction)element).Amount,
+                TransactionDate = ((Transaction)element).TransactionDate,
+                Description = ((Transaction)element).Description,
+            };
+    }
+    private void ResetItemToOriginalValues(object element)
+    {
+        ((Transaction)element).Category = elementBeforeEdit.Category;
+        ((Transaction)element).Amount = elementBeforeEdit.Amount;
+        ((Transaction)element).TransactionDate = elementBeforeEdit.TransactionDate;
+        ((Transaction)element).Description = elementBeforeEdit.Description;
+
+    }
+
+    private bool FilterFunc(Transaction element)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (element.Category?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (element.Description.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (element.TransactionDate.ToString().Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (element.Amount.ToString().Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    protected void OnDateChange(DateTime date)
+    {
+        // Do something with the date.
+    }
+
+    private void AddTransaction()
+    { }
+
+    //write the commit code for OnCommitEditClick
+    private void CommitEdit(Transaction transaction)
+    {
+        Dispatcher.Dispatch(new UpdateTransactionAction { Transaction = transaction });
+        Snackbar.Add("Commit Edit Handler Invoked");
+    }
+    private void ItemHasBeenCommitted(object element)
+    {
+        Dispatcher.Dispatch(new UpdateTransactionAction { Transaction = (Transaction)element });
+        Snackbar.Add($"RowEditCommit event: Changes to Element {((Transaction)element).TransactionId} committed");
+    }
+
+    //private void DeleteItem(object element)
+    //{
+
+    //    var parameters = new DialogParameters();
+    //    parameters.Add("ContentText", "Do you really want to delete these records? This process cannot be undone.");
+    //    parameters.Add("ButtonText", "Delete");
+    //    parameters.Add("ConfirmDel", false);
+    //    parameters.Add("Color", Color.Error);
+
+    //    var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+
+    //    var result =  DialogService.Show<DeleteConfirmDialog>("Delete", parameters, options);
+
+    //    if(result.Result)
+    //    {
+    //        Transaction tempt = (Transaction)element;
+    //        Dispatcher.Dispatch(new DeleteTransactionAction { TransactionId = tempt.TransactionId });
+    //        Snackbar.Add($"RowDeleteCommit event: Changes to Element {tempt.TransactionId} committed");
+    //    })
+    //    Transaction tempt = (Transaction)element;
+    //    Dispatcher.Dispatch(new DeleteTransactionAction{ TransactionId = tempt.TransactionId});
+    //    Snackbar.Add($"RowDeleteCommit event: Changes to Element {tempt.TransactionId} committed");
+    //}
+
+
+    private async Task DeleteItem(object element)
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("ContentText", "Do you really want to delete these records? This process cannot be undone.");
+        parameters.Add("ButtonText", "Delete");
+        parameters.Add("Color", Color.Error);
+        var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+        var dialog = DialogService.Show<ConfirmDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            Transaction tempt = (Transaction)element;
+            Dispatcher.Dispatch(new DeleteTransactionAction { TransactionId = tempt.TransactionId });
+            Snackbar.Add($"RowDeleteCommit event: Changes to Element {tempt.TransactionId} committed");
+        }
+    }
+
+    private async Task DeleteMultipleItems()
+    {
+        if (selectedItems.Count == 0)
+        {
+            Snackbar.Add("No items selected");
+            return;
+        }
+        else
+        {
+            var parameters = new DialogParameters();
+            parameters.Add("ContentText", "Do you really want to delete these records? This process cannot be undone.");
+            parameters.Add("ButtonText", "Delete");
+            parameters.Add("Color", Color.Error);
+            var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+            var dialog = DialogService.Show<ConfirmDialog>("Delete", parameters, options);
+            var result = await dialog.Result;
+            if (!result.Canceled)
+            {
+                //get the list of transactions to be deleted from the selectedItems hashset
+
+                List<int> transactionIds = new List<int>();
+                foreach (var item in selectedItems)
+                {
+                    transactionIds.Add(item.TransactionId);
+                }
+                Dispatcher.Dispatch(new DeleteSelectedTransactionsAction { TransactionIds = transactionIds });
+                Snackbar.Add($"Multiple RowDeleteCommit event: committed");
+            }
+        }
+    }
+
+}

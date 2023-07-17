@@ -1,0 +1,19 @@
+﻿.left-half {
+        height: 100%;
+}
+
+ 
+
+.right-half {
+        height: 100vh;
+        overflow-y: auto;
+}
+
+  .userdashboard{
+    display:flex;
+    flex-direction:row;
+}
+
+.scrollable-content {
+        /*max-height: calc(100vh - 64px);*/ /* Subtract the height of the app bar if applicable */
+}

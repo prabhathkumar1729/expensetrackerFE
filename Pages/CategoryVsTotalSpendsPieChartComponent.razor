@@ -1,0 +1,39 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using BlazorWalletTrackerFE.Shared.Models;
+<div class="container" style="margin: auto 10px auto auto;">
+    Category Vs Total spendings
+    <RadzenChart>
+        <RadzenPieSeries Data="@categoriesAndSpendings" CategoryProperty="Category" ValueProperty="TotalSpendings">
+            <ChildContent>
+                <RadzenSeriesDataLabels Visible="true" />
+            </ChildContent>
+
+            <TooltipTemplate Context="data">
+                <div>
+                    Spent <strong>@data.TotalSpendings</strong> on
+                    <strong>@data.Category</strong><br />
+                    <span>@_dateRange.Start - @_dateRange.End</span>
+                </div>
+            </TooltipTemplate>
+        </RadzenPieSeries>
+
+        <RadzenLegend Visible=false />
+    </RadzenChart>
+
+</div>
+
+@code {
+    [Parameter]
+    public CategoryVsTotalSpendings[] categoriesAndSpendings { get; set; }
+    [Parameter]
+    public DateRange _dateRange { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        Console.WriteLine("I started Category Vs Total Spendings Component");
+        //base.OnInitialized();
+        Console.WriteLine("I finished Category Vs Total Spendings Component");
+    }
+}

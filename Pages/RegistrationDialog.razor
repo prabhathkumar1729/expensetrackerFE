@@ -1,0 +1,181 @@
+﻿@inject IDialogService DialogService
+@using FluentValidation
+@using System.Text.Json;
+@using System.Text;
+@using System.Text.RegularExpressions;
+@inject HttpClient _httpClient
+@inject NavigationManager _navigationManager
+@inject ISnackbar SnackbarService
+<MudDialog>
+    <DialogContent>
+        <MudCard Width="500px">
+            <MudForm Model="registrationModel" @ref="form" Validation="registrationValidator?.ValidateValue">
+                <MudCardContent>
+                    <MudTextField @bind-Value="registrationModel.Name"
+                                  For="@(() => registrationModel.Name)"
+                                  OnlyValidateIfDirty="true"
+                                  Immediate="true"
+                                  Required="true"
+                                  Label="Name" />
+                    <MudTextField @bind-Value="registrationModel.Email"
+                                  For="@(() => registrationModel.Email)"
+                                  OnlyValidateIfDirty="true"
+                                  Immediate="true"
+                                  Required="true"
+                                  Label="Email" />
+                    <MudTextField @bind-Value="registrationModel.Password"
+                                  For="@(() => registrationModel.Password)"
+                                  OnlyValidateIfDirty="true"
+                                  Immediate="true"
+                                  Required="true"
+                                  Label="Password" InputType="InputType.Password" />
+                    <MudTextField @bind-Value="registrationModel.ConfirmPassword"
+                                  For="@(() => registrationModel.ConfirmPassword)"
+                                  OnlyValidateIfDirty="true"
+                                  Immediate="true"
+                                  Required="true"
+                                  Label="Confirm Password" InputType="InputType.Password" />
+                    <MudTextField @bind-Value="registrationModel.SecurityQuestion"
+                                  OnlyValidateIfDirty="true"
+                                  T="string"
+                                  Label="Security Question"
+                                  Variant="MudBlazor.Variant.Filled"
+                                  Required="true"
+                                  Lines="2" />
+                    <MudTextField @bind-Value="registrationModel.SecurityAnswer"
+                                  OnlyValidateIfDirty="true"
+                                  T="string" Label="Security Answer"
+                                  Variant="MudBlazor.Variant.Filled"
+                                  Required="true"
+                                  Lines="1" />
+
+                    <MudCardActions>
+                        <MudButton Variant="MudBlazor.Variant.Filled" Color="Color.Primary" Class="ml-auto" OnClick="RegisterAsync">Register</MudButton>
+                    </MudCardActions>
+                </MudCardContent>
+            </MudForm>
+        </MudCard>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="CancelAll">Close All</MudButton>
+    </DialogActions>
+</MudDialog>
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    void Submit() => MudDialog.Close(DialogResult.Ok(true));
+    void Cancel() => MudDialog.Cancel();
+
+    private void CancelAll()
+    {
+        MudDialog.CancelAll();
+    }
+    public class RegistrationModel
+    {
+        public string Name { get; set; }
+        public string Email { get; set; }
+        public string Password { get; set; }
+        public string ConfirmPassword { get; set; }
+        public string SecurityQuestion { get; set; }
+        public string SecurityAnswer { get; set; }
+    }
+
+    public class RegistrationValidationVm : AbstractValidator<RegistrationModel>
+    {
+        private readonly HttpClient _httpClient;
+        public RegistrationValidationVm(HttpClient httpClient)
+        {
+            _httpClient = httpClient;
+            RuleFor(_ => _.Name).NotEmpty();
+            RuleFor(_ => _.Email).NotEmpty()
+                    .EmailAddress()
+                    .MustAsync(async (value, cancellationToken) => await UniqueEmail(value))
+                    .When(_ => !string.IsNullOrEmpty(_.Email) && Regex.IsMatch(_.Email, @"\A(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)\Z", RegexOptions.IgnoreCase), ApplyConditionTo.CurrentValidator)
+                    .WithMessage("Account with this email already exists");
+            RuleFor(_ => _.Password).NotEmpty().WithMessage("Your password cannot be empty")
+                    .MinimumLength(6).WithMessage("Your password length must be at least 6.")
+                    .MaximumLength(16).WithMessage("Your password length must not exceed 16.")
+                    .Matches(@"[A-Z]+").WithMessage("Your password must contain at least one uppercase letter.")
+                    .Matches(@"[a-z]+").WithMessage("Your password must contain at least one lowercase letter.")
+                    .Matches(@"[0-9]+").WithMessage("Your password must contain at least one number.")
+                    .Matches(@"[\@\!\?\*\.]+").WithMessage("Your password must contain at least one (@!? *.).");
+            RuleFor(_ => _.ConfirmPassword).Equal(_ => _.Password).WithMessage("Confirm Password not matching");
+            RuleFor(_ => _.SecurityQuestion).NotEmpty().WithMessage("Your Security question cannot be empty");
+            RuleFor(_ => _.SecurityAnswer).NotEmpty().WithMessage("Your Security answer cannot be empty");
+        }
+        public Func<object, string, Task<IEnumerable<string>>> ValidateValue => async (model, propertyName) =>
+        {
+            var result = await ValidateAsync(ValidationContext<RegistrationModel>.CreateWithOptions((RegistrationModel)model, x => x.IncludeProperties(propertyName)));
+            if (result.IsValid)
+                return Array.Empty<string>();
+            return result.Errors.Select(e => e.ErrorMessage);
+        };
+        private async Task<bool> UniqueEmail(string email)
+        {
+            if (string.IsNullOrEmpty(email))
+            {
+                return true;
+            }
+            try
+            {
+                string url = $"/api/User/unique-user-email?email={email}";
+                var response = await _httpClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+                var content = await response.Content.ReadAsStringAsync();
+                return JsonSerializer.Deserialize<bool>(content);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+    }
+
+    RegistrationModel registrationModel = new RegistrationModel();
+    RegistrationValidationVm registrationValidator;
+    MudForm form;
+    protected override Task OnInitializedAsync()
+    {
+        registrationValidator = new RegistrationValidationVm(_httpClient);
+        return base.OnInitializedAsync();
+    }
+
+    private async Task RegisterAsync()
+    {
+        await form?.Validate();
+        if (form.IsValid)
+        {
+            string APIErrorMessage = string.Empty;
+            var jsonPayload = JsonSerializer.Serialize(registrationModel);
+            var requestContent = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync("/api/User/register", requestContent);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                var errors = await response.Content
+                .ReadFromJsonAsync<Dictionary<string, List<string>>>();
+                if (errors?.Count > 0)
+                {
+                    foreach (var item in errors)
+                    {
+                        foreach (var errorMessage in item.Value)
+                        {
+                            APIErrorMessage = $"{errorMessage} | ";
+                        }
+                    }
+                }
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                SnackbarService.Add("User Registered Successfully", MudBlazor.Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                APIErrorMessage = "Failed To Register User Please Try After SomeTime";
+            }
+            SnackbarService.Add(APIErrorMessage, MudBlazor.Severity.Error);
+        }
+    }
+}

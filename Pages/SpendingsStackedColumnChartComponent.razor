@@ -1,0 +1,32 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using BlazorWalletTrackerFE.Shared.Models;
+@using System.Linq;
+<div class="container" style="margin: auto 10px auto auto;">
+Spendings across the period
+    <RadzenChart>
+        @foreach (string category in categories)
+        {
+            var filteredData = FilterDataByCategory(category);
+
+            <RadzenStackedBarSeries Data="@filteredData" CategoryProperty="Month" Title="@category" ValueProperty="TotalSpendingsInTheMonth">
+                <RadzenSeriesDataLabels Visible="false" />
+            </RadzenStackedBarSeries>
+        })
+        <RadzenValueAxis Min="0" Step="5000" >
+            <RadzenGridLines Visible="true" />
+            <RadzenAxisTitle Text="Spendings" />
+        </RadzenValueAxis>
+        <RadzenBarOptions Radius="0" Margin="5" />
+        <RadzenLegend Position="LegendPosition.Bottom" />
+    </RadzenChart>
+</div>
+
+@code {
+    [Parameter]
+    public DataItem[] dataItems { get; set; }
+    [Parameter]
+    public string[] categories { get; set; }
+
+    private DataItem[] FilterDataByCategory(string category) => dataItems.Where(x => x.Category == category).ToArray();
+}

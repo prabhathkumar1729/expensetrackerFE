@@ -1,0 +1,71 @@
+﻿@inject IJSRuntime JSRuntime
+@using BlazorWalletTrackerFE.Shared.Models;@*
+<div id="chart" style="width: 100%; height: 300px;"></div>
+*@
+
+print the chartData
+@*<div id="chart" style="width: 100%; height: 300px;"></div>*@
+
+@foreach (List<object> row in chartData)
+        {
+            
+            @foreach (var c in row)
+            {
+                <>@c</> <>-   -</>
+            }
+            <br/>
+        }
+
+
+@code {
+    [Parameter]
+    public DataItem[] DataItems { get; set; }
+    List<List<object>> chartData = new List<List<object>>();
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Console.WriteLine("I am inside the google column chart component");
+            await JSRuntime.InvokeVoidAsync("google.charts.load", "current", new { packages = new[] { "corechart" } });
+            await JSRuntime.InvokeVoidAsync("google.charts.setOnLoadCallback", DotNetObjectReference.Create(this));
+        }
+    }
+
+    [JSInvokable]
+    public async Task DrawChart()
+    {
+        var categories = DataItems.Select(x => x.Category).Distinct().OrderBy(x => x).ToList();
+        var months = DataItems.Select(x => x.Month).Distinct().OrderBy(x => x).ToList();
+
+        // Add column names row
+        var columnNames = new List<object> { "Month" };
+        columnNames.AddRange(categories);
+        chartData.Add(columnNames);
+
+        // Add data rows
+        foreach (var month in months)
+        {
+            var dataRow = new List<object> { month };
+            foreach (var category in categories)
+            {
+                var totalSpendings = DataItems
+                    .Where(x => x.Month == month && x.Category == category)
+                    .Sum(x => x.TotalSpendingsInTheMonth);
+                dataRow.Add(totalSpendings);
+            }
+            chartData.Add(dataRow);
+        }
+
+        //print the chart data
+        foreach (List<object> row in chartData)
+        {
+            foreach (var c in row)
+            {
+                Console.Write(c.ToString() + " ");
+            }
+            Console.WriteLine();
+        }
+
+        await JSRuntime.InvokeVoidAsync("drawChart", "chart", chartData);
+    }
+}

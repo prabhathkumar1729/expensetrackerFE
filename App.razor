@@ -1,0 +1,65 @@
+﻿@inject AuthenticationStateProvider authenticationStateProvider
+@inject NavigationManager NavigationManager
+<Fluxor.Blazor.Web.StoreInitializer />
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    @if (context.User.Identity?.IsAuthenticated != true)
+                    {
+                        <BlazorWalletTrackerFE.Pages.LoginDialog/>
+                    }
+                </NotAuthorized>
+            </AuthorizeRouteView>
+        </Found>
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p role="alert">Sorry, there's nothing at this address.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>
+@*
+<CascadingAuthenticationState>
+    <CascadingBlazoredModal>
+        <Router AppAssembly="@typeof(App).Assembly">
+            <Found Context="routeData">
+                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                    <NotAuthorized>
+                        @if (context.User.Identity?.IsAuthenticated != true)
+                        {
+                            <ExpenseTracker.Client.Pages.Login />
+                        }
+                    </NotAuthorized>
+                </AuthorizeRouteView>
+                <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+            </Found>
+            <NotFound>
+                <PageTitle>Not found</PageTitle>
+                <LayoutView Layout="@typeof(MainLayout)">
+                    <p role="alert">Sorry, there's nothing at this address.</p>
+                </LayoutView>
+            </NotFound>
+        </Router>
+    </CascadingBlazoredModal>
+</CascadingAuthenticationState>*@
+@code
+{
+    protected override async Task OnInitializedAsync()
+    {
+        (authenticationStateProvider as CustomAuthProvider).NotifyAuthState();
+        var state = await authenticationStateProvider.GetAuthenticationStateAsync();
+        var user = state.User;
+
+        if (user.Identity != null && user.Identity.IsAuthenticated)
+        {
+            NavigationManager.NavigateTo("/profile");
+        }
+        //else
+        //{
+        //    NavigationManager.NavigateTo("/login");
+        //}
+    }
+}

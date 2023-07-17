@@ -1,0 +1,87 @@
+﻿.hero {
+      background-image: url('background.jpg');
+      background-size: cover;
+      background-position: center;
+      color: #fff;
+      padding: 100px 0;
+      text-align: center;
+}
+
+ 
+
+.hero-content {
+      max-width: 600px;
+      margin: 0 auto;
+}
+
+ 
+
+.hero h1 {
+      font-size: 36px;
+      margin-bottom: 20px;
+}
+
+ 
+
+.hero p {
+      font-size: 18px;
+      margin-bottom: 40px;
+}
+
+ 
+
+.btn {
+      display: inline-block;
+      padding: 12px 30px;
+      font-size: 18px;
+      text-decoration: none;
+      background-color: #3498db;
+      color: #fff;
+      border-radius: 4px;
+}
+
+ 
+
+.btn-primary {
+      background-color: #3498db;
+}
+
+ 
+/* Features section styles */
+.features {
+      padding: 80px 0;
+      text-align: center;
+}
+
+     
+
+    .features h2 {
+          font-size: 30px;
+          margin-bottom: 40px;
+    }
+
+ 
+
+.feature-item {
+      margin-bottom: 40px;
+}
+
+     
+
+    .feature-item img {
+          max-width: 100px;
+          margin-bottom: 20px;
+    }
+
+     
+
+    .feature-item h3 {
+          font-size: 24px;
+          margin-bottom: 10px;
+    }
+
+     
+
+    .feature-item p {
+          font-size: 16px;
+    }

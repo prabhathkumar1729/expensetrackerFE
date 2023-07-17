@@ -1,0 +1,97 @@
+﻿@using BlazorWalletTrackerFE.Shared.Models;
+@using System.Collections;
+<div id="stackedColumncontainer" style="width: 900px; height: 300px;"></div>
+
+@code {
+    [Parameter]
+    public DataItem[]? dataItems { get; set; }
+    ArrayList tableData = new ArrayList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await GetChartData(dataItems);
+    }
+
+    //private List<List<object>> GetChartData(DataItem[]? dataItems)
+    //{
+    //    if (dataItems == null || dataItems.Length == 0)
+    //        return new List<List<object>>();
+
+    //    List<List<object>> chartData = new List<List<object>>();
+
+    //    // Add column names row
+    //    List<object> columnNames = new List<object> { "Month" };
+    //    columnNames.AddRange(dataItems.Select(x => x.Category).Distinct());
+    //    chartData.Add(columnNames);
+
+    //    // Add data rows
+    //    foreach (var month in dataItems.Select(x => x.Month).Distinct())
+    //    {
+    //        List<object> dataRow = new List<object>();
+    //        dataRow.Add(month);
+    //        foreach (var category in dataItems.Select(x => x.Category).Distinct())
+    //        {
+    //            var totalSpendings = dataItems.Where(x => x.Month == month && x.Category == category)
+    //                                          .Sum(x => x.TotalSpendingsInTheMonth);
+    //            dataRow.Add(totalSpendings);
+    //        }
+    //        chartData.Add(dataRow);
+    //    }
+
+    //    // Print chartData
+    //    foreach (List<object> row in chartData)
+    //    {
+    //        foreach (var c in row)
+    //        {
+    //            Console.Write(c.ToString() + " ");
+    //        }
+    //        Console.WriteLine();
+    //    }
+
+    //    return chartData;
+    //}
+    private async Task   GetChartData(DataItem[]? dataItems)
+    {
+        if (dataItems == null || dataItems.Length == 0)
+            return;
+
+        ArrayList chartData = new ArrayList();
+
+        // Add column names row
+        List<string> catogNames = new List<string>();
+        catogNames.AddRange(dataItems.Select(x => x.Category).Distinct());
+        chartData.Add("Month"); ;
+
+        foreach (string s in catogNames)
+        {
+            chartData.Add(s);
+        }
+        // Add data rows
+        foreach (string month in dataItems.Select(x => x.Month).Distinct())
+        {
+            ArrayList dataRow = new ArrayList();
+            dataRow.Add(month);
+            foreach (string category in catogNames)
+            {
+                var totalSpendings = dataItems.Where(x => x.Month == month && x.Category == category)
+                                              .Sum(x => x.TotalSpendingsInTheMonth);
+                dataRow.Add(totalSpendings);
+            }
+            chartData.Add(dataRow);
+        }
+
+        // Print chartData
+        foreach (ArrayList row in chartData)
+        {
+            foreach (ArrayList c in row)
+            {
+                Console.Write(c.ToString() + " ");
+            }
+            Console.WriteLine();
+        }
+
+
+        await JS.InvokeVoidAsync("StackedColumnChart", chartData);
+    }
+}

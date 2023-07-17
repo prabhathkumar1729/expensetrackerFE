@@ -1,0 +1,79 @@
+﻿@inherits FluxorComponent
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@using BlazorWalletTrackerFE.Shared.Models;
+@using BlazorWalletTrackerFE.Shared.Services;
+@using BlazorWalletTrackerFE.Store.UserStore;
+@using BlazorWalletTrackerFE.Store.TransactionStore;
+@using BlazorWalletTrackerFE.Store.CategoryStore;
+@inject IDispatcher Dispatcher;
+@inject IState<UserState> UserStorage;
+@inject IState<TransactionState> TransactionStorage;
+@inject IState<CategoryState> CategoryStorage;
+@using System.IdentityModel.Tokens.Jwt;
+@inject NavigationManager Navigation;
+
+@code {
+
+    public DateTime date1 = DateTime.Today;
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        Console.WriteLine("Hello FROM THE ONINITIALIZEDASYNC METHOD");
+        await JS.InvokeVoidAsync("console.log", "Hello FROM THE ONINITIALIZEDASYNC METHOD");
+        await JS.InvokeVoidAsync("console.log", date1);
+        try
+        {
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "JWTToken");
+            await JS.InvokeVoidAsync("console.log", "THIS IS THE TOKEN IVE FETCHED SUCCESSFULLY FROM THE LOCAL STORAGE    ", token);
+            if (token == null)
+            {
+                Navigation.NavigateTo("/login");
+                return;
+            }
+            await JS.InvokeVoidAsync("console.log", "I'VE ENTERED INTO THE USERDASHBOARD PAGE");
+            Console.WriteLine("I'VE ENTERED INTO THE USERDASHBOARD PAGE");
+            // Decode the access token.
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var tokenDecoded = tokenHandler.ReadJwtToken(token);
+            Console.WriteLine("THIS IS THE TOKEN IVE FETCHED SUCCESSFULLY FROM THE LOCAL STORAGE    ", token);
+            // Create a new User object from the decoded token.
+            var tokenUser = new User
+                {
+                    Id = int.Parse(tokenDecoded.Claims.FirstOrDefault(x => x.Type == "Id").Value),
+                    Email = tokenDecoded.Claims.FirstOrDefault(x => x.Type == "Email").Value,
+                    Name = tokenDecoded.Claims.FirstOrDefault(x => x.Type == "Name").Value
+                };
+
+            // Check if the User object is valid.
+            if (tokenUser.Id == 0 || tokenUser.Email == null || tokenUser.Name == null)
+            {
+                Console.WriteLine("Invalid token");
+                Navigation.NavigateTo("/login");
+                return;
+            }
+
+            // Navigate to the user dashboard page.
+            Console.WriteLine("I have a token, I will fetch transactions from the userdashboard component");
+            await JS.InvokeVoidAsync("console.log", "I ave a token, I will fetch transactions from the userdashboard component");
+            Dispatcher.Dispatch(new SaveToUserStateAction { User = tokenUser });
+            Dispatcher.Dispatch(new FetchTransactionsAction { UserId = UserStorage.Value.User.Id });
+            Dispatcher.Dispatch(new FetchCategoriesAction { UserId = UserStorage.Value.User.Id });
+
+
+
+            List<Transaction> transactions = TransactionStorage.Value.Transactions;
+            Transaction transaction = transactions.Where(x => x.TransactionId == 3).FirstOrDefault();
+            await JS.InvokeVoidAsync("console.log", "Hello I am trying to know the transactionDate");
+            await JS.InvokeVoidAsync("console.log", transaction.TransactionDate.GetType());
+            await JS.InvokeVoidAsync("console.log", transaction.TransactionDate);
+            await JS.InvokeVoidAsync("console.log", "////////////////////////////////////////////////////////////////////////");
+        }
+        catch (Exception ex)
+        {
+            // Handle any exceptions.
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+}
